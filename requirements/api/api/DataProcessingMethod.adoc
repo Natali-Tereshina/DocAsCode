@@ -1,0 +1,97 @@
+
+Ссылка на параметры https://gitlab.burgerkingrus.ru/corebackend/menu-composition-service/-/blame/master/api/server/openapi.yaml?ref_type=heads#L7
+
+Как раскрывается в доке ? Умеет ли так аскидоке
+
+либо на сваггер сразу
+
+== 8. Логика обработки данных
+
+1. МП вызывает метод: GET /v7/restaurants?hash=<hash>.
+
+2. APIGateway перенаправляет запрос в RestaurantComposition.
+
+3. RestaurantComposition вызывает RestaurantService.getRestaurantsList().
+
+4. RestaurantService сравнивает переданный hash с актуальным:
+
+5. если hash совпадает → возвращается только hash;
+
+6. если hash отличается → возвращается новый hash + полный список ресторанов.
+
+7. RestaurantComposition отправляет ответ в APIGateway.
+
+8. APIGateway возвращает ответ МП.
+
+== 9. Диаграмма последовательности (PlantUML)
+
+== Архитектурная схема обработки запроса GET /v7/restaurants
+
+[plantuml]
+----
+
+```plantuml
+@startuml
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam ActivityFontColor black
+skinparam ActivityBackgroundColor #FDEBD0
+skinparam ActivityBorderColor #D68910
+skinparam rectangleFontColor black
+skinparam rectangleFontStyle bold
+
+rectangle "МП" as MP #F5B7B1
+
+rectangle "API Gateway\nМаршрутизация запроса" as APIGW #F9E79F
+
+rectangle "Restaurant\nComposition\nКоординация запросов\nв сервис" as RC #FCF3CF
+
+rectangle "RestaurantService\nПолучение списка\nресторанов" as RS #FDEBD0
+
+rectangle "GA2\nПолучение настроек\nиз админ панели" as GA2 #FADBD8
+
+rectangle "admin.bk.local" as ADMIN #F1948A
+
+MP -right-> APIGW : GET\nv7/restaurants
+APIGW -right-> RC : GET\nv7/restaurants
+RC -right-> RS : getRestaurants()
+RS -right-> GA2 : getAdminRestaurants()
+ADMIN -left-> GA2 : POST restaurants/list\nPOST restaurants/update
+
+@enduml
+----
+
+```plantuml
+@startuml
+title Получение списка ресторанов с использованием hash
+
+actor МП
+participant APIGateway
+participant RestaurantComposition
+participant RestaurantService
+
+МП -> APIGateway: GET /v7/restaurants?hash=<hash>
+activate МП
+activate APIGateway
+
+APIGateway -> RestaurantComposition: GET /v7/restaurants?hash=<hash>
+activate RestaurantComposition
+
+RestaurantComposition -> RestaurantService: getRestaurantsList()
+activate RestaurantService
+
+alt hash не изменился
+    RestaurantService --> RestaurantComposition: { "hash": "<текущий hash>" }
+else hash изменился
+    RestaurantService --> RestaurantComposition: { "restaurants": [...], "hash": "<новый hash>" }
+end
+
+deactivate RestaurantService
+
+RestaurantComposition --> APIGateway: Ответ (hash либо hash + restaurants)
+deactivate RestaurantComposition
+
+APIGateway --> МП: Ответ
+deactivate APIGateway
+deactivate МП
+@enduml

@@ -1,0 +1,168 @@
+openapi: 3.0.3
+info:
+  title: Restaurant API
+  version: 1.0.0
+  description: API для получения списка ресторанов Burger King.
+
+servers:
+  - url: https://orderapp.burgerkingrus.ru/gateway/restaurant-composition
+
+paths:
+  /api/v7/restaurants:
+    get:
+      summary: Получение списка ресторанов
+      description: Возвращает список ресторанов. Если hash не изменился, возвращается пустой список и текущий hash.
+      parameters:
+        - name: hash
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Общий хэш объекта. Позволяет проверить, не изменилась ли информация.
+        - name: x-burgerking-platform
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Операционная система (например, android, ios)
+        - name: x-burgerking-version
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Версия приложения
+        - name: user-agent
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Идентификатор программы/клиента
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      restaurants:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              example: 321
+                            name:
+                              type: string
+                              example: "Москва, пр-т Мира 1"
+                            city:
+                              type: object
+                              properties:
+                                city_name:
+                                  type: string
+                                  example: "Москва"
+                                timezone_offset:
+                                  type: integer
+                                  example: 3
+                            lon:
+                              type: number
+                              format: float
+                              example: 37.6173
+                            lat:
+                              type: number
+                              format: float
+                              example: 55.7558
+                            phone:
+                              type: string
+                              example: "84955445000,4558"
+                            timetable:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  active:
+                                    type: boolean
+                                  time_from:
+                                    type: string
+                                    nullable: true
+                                    example: "08:00"
+                                  time_to:
+                                    type: string
+                                    nullable: true
+                                    example: "23:00"
+                            features:
+                              type: object
+                              properties:
+                                promocode:
+                                  type: boolean
+                                sber2-recur-app-spasibo:
+                                  type: boolean
+                                paymaster-sbp-app:
+                                  type: boolean
+                                yandex-app-2-app:
+                                  type: boolean
+                                sber2-app-2-app:
+                                  type: boolean
+                                king_drive:
+                                  type: boolean
+                                king_drive_payments:
+                                  type: boolean
+                            status:
+                              type: integer
+                              enum: [0,1]
+                              description: |
+                                0 - неактивный (нельзя заказать, можно смотреть меню)
+                                1 - активен
+                      hash:
+                        type: string
+                        example: "7f6167e3"
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '523':
+          description: Ошибка внутреннего сервиса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              example: -3200
+              description: Код ошибки (всегда отрицательный)
+            message:
+              type: string
+              example: "Bad Request"
+            data:
+              type: object
+              properties:
+                trace:
+                  type: string
+                  example: "some trace"
+                title:
+                  type: string
+                  example: "Произошла ошибка"
+                description:
+                  type: string
+                  example: "Невозможно удалить заказ"
